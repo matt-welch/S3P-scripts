@@ -1,0 +1,7 @@
+<!-- passthrough.xml SR-IOV network definition for libvirt -->
+<network>
+    <name>passthrough</name>
+    <forward mode='hostdev' managed='yes'>
+        <pf dev='ens513f1'/>
+    </forward>
+</network>
