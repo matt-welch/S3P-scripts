@@ -1,19 +1,17 @@
 #!/bin/bash
 
 source ../util/bash_colors.sh
+source ./network_functions.sh 
+
 DEVICE_HOME="/sys/bus/pci/devices"
 
 function usage () {
     echo -e "\n\tUsage: $0 <device BB:DD.F> [num_vfs] \n"
     echo "Example devices: "
-    lspci | grep Ethernet --color
+    show_net_devs
 
     echo -e "\nSystem Bridges:"
     brctl show 
-
-    NET_PATH="/sys/class/net/"
-    echo -e "\nNetwork devices in $NET_PATH :"
-    ls -al $NET_PATH | grep -E "0{4}:[[:digit:]]{2}:[[:digit:]]{2}.[[:digit:]]/net" --color
 }
 
 if [[ -z "$1" ]] ; then 
