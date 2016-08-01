@@ -1,6 +1,6 @@
 #!/bin/bash
 
-IMAGE_STORE="/home/matt/images"
+IMAGE_STORE="/data/images"
 function copyImage ( ) {
     # clone the original HDD image with rsync to show status: 
     SOURCE_IMAGE=$1
@@ -13,10 +13,15 @@ function copyImage ( ) {
 
 function sysprepImage ( ) {
     # use virt-sysprep to prepare the image
-    SYSPREP_OPS="net-hostname,net-hwaddr,fs-uuids,dhcp-client-state" 
     # Note: SYSPREP_OPS variable may not end in a ','
+    SYSPREP_OPS="net-hostname,net-hwaddr,fs-uuids,dhcp-client-state" 
+    #OPTIONS="--enable ${SYSPREP_OPS} " # the set of SYSPREP_OPS above breaks the image and renders the VM unbootable, likely due to FS issues
+    #virt-sysprep $OPTIONS -a ${NEW_IMAGE_PATH}
+
+    OPTIONS="--hostname $NEW_HOSTNAME "
     echo "$0 :: [[$(date)] :: beginning virt-sysprep of <$NEW_IMAGE_PATH> with operations: $SYSPREP_OPS "
-    virt-sysprep --enable ${SYSPREP_OPS} -a "${NEW_IMAGE_PATH}"
+    export LIBGUESTFS_BACKEND_SETTINGS=network_bridge=br0 # this is to prevent looking for virbr0
+    virt-customize ${OPTIONS} -a "${NEW_IMAGE_PATH}"
     echo "$0 :: [[$(date)] :: virt-sysprep of <$NEW_IMAGE_PATH> with operations: \"$SYSPREP_OPS\" is now complete."
 }
 

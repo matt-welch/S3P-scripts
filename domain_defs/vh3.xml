@@ -32,7 +32,7 @@
   <devices>
     <emulator>/usr/bin/qemu-system-x86_64</emulator>
     <disk type='file' device='disk'>
-        <source file='/var/lib/libvirt/images/vh3.img'/>
+        <source file='/data/images/vh3.img'/>
       <backingStore/>
       <target dev='vda' bus='virtio'/>
       <alias name='virtio-disk0'/>
