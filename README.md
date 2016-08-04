@@ -9,6 +9,8 @@ virtual machines to enable scale testing for OpenDaylight S3P.
 ## Dependencies: 
 S3P-scripts requires the following utilities which may be installed with setup_S3P-scripts.sh.
 Development work was done on Fedora 23 Server.
+the netinst (minimal) server image was obtained from:
+https://mirror.chpc.utah.edu/pub/fedora/linux/releases/23/Server/x86_64/iso/Fedora-Server-netinst-x86_64-23.iso
 
 ### Hardware
 If using the passthrough-vf network, the host system must have a network 
@@ -21,7 +23,7 @@ rsync
 brutils (brctl), iproute2 (ip utils), 
 
 ### Containers only
-lxc
+lxc.x86_64
 
 ## installation
 Steps required to bring up virtual machines:
