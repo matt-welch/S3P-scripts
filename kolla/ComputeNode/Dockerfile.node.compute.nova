@@ -1,0 +1,147 @@
+# BEGIN centos-binary-base (base/Dockerfile)
+FROM centos:7
+MAINTAINER Matt Welch (Intel::ODL::S3P)
+
+LABEL kolla_version="3.0.0"
+
+ENV KOLLA_BASE_DISTRO="centos" KOLLA_INSTALL_TYPE="binary" KOLLA_INSTALL_METATYPE="rdo"
+
+#### Customize PS1 to be used with bash shell
+COPY kolla_bashrc /tmp/
+RUN cat /tmp/kolla_bashrc >> /etc/skel/.bashrc \
+    && cat /tmp/kolla_bashrc >> /root/.bashrc
+
+# PS1 var when used /bin/sh shell
+ENV PS1="$(tput bold)($(printenv KOLLA_SERVICE_NAME))$(tput sgr0)[$(id -un)@$(hostname -s) $(pwd)]$ "
+
+# For RPM Variants, enable the correct repositories - this should all be done
+# in the base image so repos are consistent throughout the system.  This also
+# enables to provide repo overrides at a later date in a simple fashion if we
+# desire such functionality.  I think we will :)
+
+RUN if [ $(awk '{match($0, /[0-9]+/,version)}END{print version[0]}' /etc/system-release) != "7" ]; then \
+        echo "Only supported 7 release on centos"; false; \
+    fi \
+    && cat /tmp/kolla_bashrc >> /etc/bashrc
+
+#### BEGIN REPO ENABLEMENT
+# Turns on Elasticsearch repos
+COPY elasticsearch.yum.repo /etc/yum.repos.d/elasticsearch.repo
+
+# Turns on Kibana repo
+COPY kibana.yum.repo /etc/yum.repos.d/kibana.yum.repo
+
+# Turns on MariaDB repos throughout the RPM build
+COPY mariadb.yum.repo /etc/yum.repos.d/MariaDB.repo
+
+# Turns on InfluxDB repos throughout the RPM build
+COPY influxdb.yum.repo /etc/yum.repos.d/influxdb.repo
+
+RUN yum -y install \
+        http://repo.percona.com/release/7/RPMS/x86_64/percona-release-0.1-3.noarch.rpm \
+    && rpm --import http://yum.mariadb.org/RPM-GPG-KEY-MariaDB \
+    && rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-Percona \
+    && rpm --import https://packages.elastic.co/GPG-KEY-elasticsearch \
+    && rpm --import https://repos.influxdata.com/influxdb.key
+
+RUN curl -L http://buildlogs.centos.org/centos/7/cloud/x86_64/rdo-trunk-master-tested/delorean.repo -o /etc/yum.repos.d/delorean.repo
+
+RUN curl -L http://trunk.rdoproject.org/centos7/delorean-deps.repo -o /etc/yum.repos.d/delorean-deps.repo
+
+RUN rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7 \
+    && yum -y install \
+           epel-release \
+           yum-plugin-priorities \
+           centos-release-ceph-hammer \
+           centos-release-qemu-ev \
+    && rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-7 \
+    && rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-Storage \
+    && rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-Virtualization \
+    && yum clean all
+
+#### END REPO ENABLEMENT
+
+RUN yum -y update \
+    && yum -y install \
+           yum-plugin-versionlock \
+    && yum clean all
+COPY versionlock.list /etc/yum/pluginconf.d/
+
+# Install base packages
+RUN yum -y install \
+        sudo \
+        which \
+        python \
+        lvm2 \
+        scsi-target-utils \
+        iscsi-initiator-utils \
+    && yum clean all
+
+COPY set_configs.py /usr/local/bin/kolla_set_configs
+COPY start.sh /usr/local/bin/kolla_start
+COPY sudoers /etc/sudoers
+COPY curlrc /root/.curlrc
+RUN touch /usr/local/bin/kolla_extend_start \
+    && chmod 755 /usr/local/bin/kolla_start /usr/local/bin/kolla_extend_start /usr/local/bin/kolla_set_configs \
+    && chmod 440 /etc/sudoers \
+    && groupadd kolla \
+    && rm -f /tmp/kolla_bashrc
+
+CMD ["kolla_start"]
+#END centos-binary-base
+#BEGIN centos-binary-openstack-base (openstack-base/Dockerfile
+RUN yum -y install git iproute openssl  && yum clean all
+RUN yum -y install avahi-libs cups-libs fontconfig fontpackages-filesystem freetype initscripts libjpeg-turbo libpng libtomcrypt libtommath libX11 libX11-common libXau libxcb libXext libXi libxslt libyaml MySQL-python Percona-Server-shared-56 pyOpenSSL pyparsing python2-cffi python2-crypto python2-cryptography python2-debtcollector python2-eventlet python2-fasteners python2-funcsigs python2-futurist python2-greenlet python2-iso8601 python2-msgpack python2-oslo-concurrency python2-oslo-config python2-oslo-context python2-oslo-db python2-oslo-i18n python2-oslo-log python2-oslo-messaging python2-oslo-middleware python2-oslo-policy python2-oslo-serialization python2-oslo-service python2-oslo-utils python2-pika python2-pika_pool python2-positional python2-pyasn1 python2-PyMySQL python-alembic python-amqp python-anyjson python-barbicanclient python-beaker python-cachetools python-ceilometerclient python-cliff python-cmd2 python-congressclient python-contextlib2 python-dateutil python-decorator python-designateclient python-dogpile-cache python-editor python-enum34 python-extras python-fixtures python-futures python-glanceclient python-heatclient python-httplib2 python-idna python-inotify python-ipaddress python-ironicclient python-jsonpatch python-jsonpointer python-jsonschema python-keyring python-keystoneauth1 python-keystoneclient python-keystonemiddleware python-kombu python-linecache2 python-lxml python-magnumclient python-mako python-manilaclient python-memcached python-migrate python-mimeparse python-mistralclient python-monotonic python-muranoclient python-netaddr python-netifaces python-neutronclient python-novaclient python-openstackclient python-paste python-paste-deploy python-pbr python-pip python-ply python-posix_ipc python-prettytable python-pycparser python-PyMySQL python-repoze-lru python-requests python-retrying python-routes python-saharaclient python-simplejson python-sqlalchemy python-sqlparse python-stevedore python-swiftclient python-tempita python-testtools python-traceback2 python-troveclient python-unicodecsv python-unittest2 python-urllib3 python-warlock python-webob python-wrapt python-zaqarclient PyYAML systemd-sysv sysvinit-tools tcp_wrappers-libs  && yum clean all
+#END centos-binary-openstack-base (openstack-base/Dockerfile
+#BEGIN centos-binary-nova-base (nova-base/Dockerfile)
+RUN yum -y install \
+        openstack-nova-common \
+        python-keystoneclient \
+        python-cinderclient \
+        bridge-utils \
+        openvswitch \
+    && yum clean all
+
+COPY extend_start.sh /usr/local/bin/kolla_extend_start
+
+RUN touch /usr/local/bin/kolla_nova_extend_start \
+    && chmod 755 /usr/local/bin/kolla_extend_start /usr/local/bin/kolla_nova_extend_start
+
+RUN usermod -a -G kolla nova
+#END centos-binary-nova-base (nova-base/Dockerfile)
+#BEGIN centos-binary-nova-compute (nova-compute/Dockerfile)
+RUN yum -y install \
+        openstack-nova-compute \
+        openvswitch \
+        sysfsutils \
+        ceph-common \
+        genisoimage \
+        iscsi-initiator-utils \
+        targetcli \
+        python-rtslib \
+    && yum clean all
+
+RUN chmod 755 /usr/local/bin/kolla_nova_extend_start \
+    && rm -f /etc/machine-id
+
+ENV PATH $PATH:/lib/udev
+
+USER nova
+#END centos-binary-nova-compute (nova-compute/Dockerfile)
+#BEGIN centos-binary-nova-libvirt (nova-libvirt/Dockerfile)
+RUN yum -y install \
+        libvirt-daemon \
+        libguestfs \
+        qemu-system-x86 \
+        libvirt-daemon-driver-nwfilter \
+        libvirt-daemon-config-nwfilter \
+        libvirt-daemon-driver-lxc \
+        ceph-common \
+    && yum clean all \
+    && usermod -a -G nova qemu
+
+# REDUNDANT COMMAND: 
+# COPY extend_start.sh /usr/local/bin/kolla_extend_start
+RUN chmod 755 /usr/local/bin/kolla_extend_start
+
+#END centos-binary-nova-libvirt (nova-libvirt/Dockerfile)
