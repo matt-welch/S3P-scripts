@@ -32,3 +32,21 @@ function show_net_devs ( ) {
     done
 }
 
+function pci_from_ifname ( ) {
+    # return PCI BB:DD.F for an interface name
+    _ERR_MSG="Usage: pci_from_ifname ethX"
+    _IFNAME="${1:?${_ERR_MSG}}"
+    _SYS_PATH="/sys/class/net/${_IFNAME}/device"
+    _PCI_ADDR="$(basename $(readlink $_SYS_PATH ) | cut -d ':' -f 2-4)"
+    echo $_PCI_ADDR
+}
+
+function ifname_from_pci ( ) {
+    # return network interface name from its PCI address
+    _ERR_MSG="Usage: ifname_from_pci bb:dd.f"
+    _PCI_ADDR="${1:?${_ERR_MSG}}"
+    _SYS_PATH="/sys/bus/pci/devices/0000:${_PCI_ADDR}/net"
+    _IFNAME=$(ls $_SYS_PATH)
+    echo $_IFNAME
+}
+
