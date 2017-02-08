@@ -18,8 +18,15 @@ if [[ ! -e "$ISO_FILE"  ]]; then
     echo "The install media < $ISO_FILE > is not present in $(pwd), downloading ..."
     wget $INSTALL_MEDIA
 else
-    virt-install --name $NAME  --memory $MEM_MB --vcpus $N_VCPU \
-        --cdrom $ISO_FILE --os-variant 'auto' --disk size=$DISK_SIZE_GB \
-        --network bridge=br0 --network bridge=br1 --network network=passthrough \
-        --graphics vnc $VIRT_TYPE $PRINT_XML
+    virt-install \
+        --name $NAME \
+        --memory $MEM_MB \
+        --vcpus $N_VCPU \
+        --cdrom $ISO_FILE \
+        --os-variant 'auto' \
+        --disk size=$DISK_SIZE_GB \
+        --network bridge=br0 \
+        --network bridge=br1 \
+        --graphics vnc \
+        $VIRT_TYPE $PRINT_XML
 fi
